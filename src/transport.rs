@@ -122,6 +122,12 @@ where
 }
 
 impl Transport {
+    /// Transfer this owned transport to libgit2's per-remote factory caller.
+    pub(crate) fn into_raw(mut self) -> *mut raw::git_transport {
+        self.owned = false;
+        self.raw
+    }
+
     /// Creates a new transport which will use the "smart" transport protocol
     /// for transferring data.
     ///

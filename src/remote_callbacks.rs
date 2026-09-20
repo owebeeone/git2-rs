@@ -6,10 +6,11 @@ use std::slice;
 use std::str;
 
 use crate::cert::Cert;
+use crate::transport::{SmartSubtransport, Transport};
 use crate::util::Binding;
 use crate::{
     panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, PackBuilderStage, Progress,
-    PushUpdate,
+    PushUpdate, Remote,
 };
 
 /// A structure to contain the callbacks which are invoked when a repository is
@@ -27,7 +28,10 @@ pub struct RemoteCallbacks<'a> {
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
     push_negotiation: Option<Box<PushNegotiation<'a>>>,
+    transport: Option<Box<TransportFactory<'a>>>,
 }
+
+type TransportFactory<'a> = dyn FnMut(&Remote<'_>) -> Result<Transport, Error> + 'a;
 
 /// Callback used to acquire credentials for when a remote is fetched.
 ///
@@ -119,7 +123,32 @@ impl<'a> RemoteCallbacks<'a> {
             push_update_reference: None,
             push_progress: None,
             push_negotiation: None,
+            transport: None,
         }
+    }
+
+    /// Construct a smart transport for this remote without global registration.
+    ///
+    /// `rpc` selects stateless exchanges when true, stateful service streams when
+    /// false. The factory receives a borrowed remote only during construction;
+    /// the returned subtransport must independently own its `Send + 'static` state.
+    /// The binding creates the transport with this exact native owner.
+    ///
+    /// libgit2 invokes this factory only when the remote has no transport yet.
+    /// Disconnect may retain a transport, so new callbacks do not replace it on
+    /// reconnect. Use a fresh remote to change its context or route. Dropping the
+    /// remote frees its retained transport. Other callbacks remain configured.
+    /// Factory errors propagate; panics resume at the enclosing Rust operation
+    /// boundary after being caught before crossing C.
+    pub fn smart_transport<S, F>(&mut self, rpc: bool, mut factory: F) -> &mut RemoteCallbacks<'a>
+    where
+        S: SmartSubtransport,
+        F: FnMut(&Remote<'_>) -> Result<S, Error> + 'a,
+    {
+        self.transport = Some(Box::new(move |remote| {
+            Transport::smart(remote, rpc, factory(remote)?)
+        }));
+        self
     }
 
     /// The callback through which to fetch credentials if required.
@@ -298,10 +327,44 @@ impl<'a> Binding for RemoteCallbacks<'a> {
             if self.push_negotiation.is_some() {
                 callbacks.push_negotiation = Some(push_negotiation_cb);
             }
+            if self.transport.is_some() {
+                callbacks.transport = Some(transport_cb);
+            }
             callbacks.payload = self as *const _ as *mut _;
             callbacks
         }
     }
+}
+
+extern "C" fn transport_cb(
+    out: *mut *mut raw::git_transport,
+    owner: *mut raw::git_remote,
+    payload: *mut c_void,
+) -> c_int {
+    // SAFETY: libgit2 supplies the output slot and owning remote. The payload
+    // is the live RemoteCallbacks installed by this crate, as for its other
+    // callbacks. The borrowed wrapper must never free that native owner.
+    unsafe {
+        *out = ptr::null_mut();
+    }
+    panic::wrap(|| unsafe {
+        let callbacks = &mut *(payload as *mut RemoteCallbacks<'_>);
+        let remote = mem::ManuallyDrop::new(Remote::from_raw(owner));
+        let factory = match callbacks.transport.as_mut() {
+            Some(factory) => factory,
+            None => {
+                return Error::from_str("missing per-remote transport factory").raw_set_git_error();
+            }
+        };
+        match factory(&remote) {
+            Ok(transport) => {
+                *out = transport.into_raw();
+                0
+            }
+            Err(error) => error.raw_set_git_error(),
+        }
+    })
+    .unwrap_or(-1)
 }
 
 extern "C" fn credentials_cb(
