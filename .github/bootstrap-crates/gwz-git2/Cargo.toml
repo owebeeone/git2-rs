@@ -1,0 +1,13 @@
+[package]
+name = "gwz-git2"
+version = "0.0.0-bootstrap.1"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Bootstrap prerelease for the actively developed gwz-git2 project; no implementation included."
+repository = "https://github.com/owebeeone/git2-rs"
+readme = "README.md"
+publish = ["crates-io"]
+include = ["Cargo.toml", "Cargo.lock", "README.md", "src/lib.rs"]
+
+# Keep this dependency-free bootstrap separate from the production workspace.
+[workspace]
