@@ -1,0 +1,80 @@
+# Publish gwz-libgit2-sys and gwz-git2 to crates.io when a GitHub Release is
+# published, which `gearu release --github-release` does (RELEASE.md). One tag
+# covers both packages: the sys package goes first, then gwz-git2, which asks for it
+# exactly. A package whose version is already on crates.io is skipped, so a rerun
+# after a partial failure resumes where it stopped.
+#
+# Authentication is crates.io Trusted Publishing only, with no token and no token
+# fallback. Each package needs its own trusted publisher: owner owebeeone, repository
+# git2-rs, workflow release.yml, environment crates-io (RELEASE.md).
+name: Release gwz-libgit2-sys and gwz-git2
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'owebeeone/git2-rs'
+    runs-on: ubuntu-24.04
+    environment: crates-io
+    timeout-minutes: 45
+    concurrency:
+      group: git2-rs-crates-io
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          submodules: true
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Verify the tag, the version, the libgit2 pin and both release-check stages
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')"
+          if [ "$RELEASE_TAG" != "v$version" ]; then
+            echo "::error::release tag $RELEASE_TAG and gwz-git2's version $version differ"
+            exit 1
+          fi
+          python3 -m unittest discover -s scripts
+          export RUSTUP_TOOLCHAIN=1.95.0
+          python3 scripts/release_checks.py --version "$version"
+          python3 scripts/release_checks.py --version "$version" --exact
+      - name: Authenticate using Trusted Publishing
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+      - name: Publish gwz-libgit2-sys, then gwz-git2
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          RUSTUP_TOOLCHAIN: '1.95.0'
+        run: |
+          published() {
+            # $1 is a package name and $2 its version; `+` is percent-encoded in the URL.
+            code="$(curl -sS -o /dev/null -w '%{http_code}' -A 'owebeeone-git2-rs-release (https://github.com/owebeeone/git2-rs)' "https://crates.io/api/v1/crates/$1/${2//+/%2B}")"
+            case "$code" in
+              200) return 0 ;;
+              404) return 1 ;;
+              *)
+                echo "::error::crates.io answered $code for $1 $2"
+                exit 1
+                ;;
+            esac
+          }
+          manifest_version() {
+            python3 -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["package"]["version"])' "$1"
+          }
+          publish_package() {
+            if published "$1" "$2"; then
+              echo "$1 $2 is already on crates.io; skipping"
+            else
+              cargo publish --locked -p "$1"
+            fi
+          }
+          publish_package gwz-libgit2-sys "$(manifest_version libgit2-sys/Cargo.toml)"
+          publish_package gwz-git2 "$(manifest_version Cargo.toml)"

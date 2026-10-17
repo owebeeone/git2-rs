@@ -1,0 +1,26 @@
+[project]
+name = "git2-rs"
+# The GWZ fork's work must be on main before a release: gearu refuses any other branch.
+branch = "main"
+remote = "origin"
+tag_prefix = "v"
+github_repo = "owebeeone/git2-rs"
+
+[rust]
+# One tag, two packages (plan S2.2). The tag's version is gwz-git2's. gwz-libgit2-sys
+# keeps its own version, 0.18.8+1.9.7, which gearu does not touch: change it by hand,
+# together with gwz-git2's `=` requirement on it (scripts/release_checks.py checks the
+# pair). release.yml publishes the sys package first, then gwz-git2, from this tag.
+manifests = ["Cargo.toml"]
+lockfile = "Cargo.lock"
+# Refresh only the workspace members' own entries; every other locked version stays.
+lock_command = ["cargo", "update", "--workspace"]
+
+[release]
+# The candidate stage runs the tests. The exact stage dry-runs both packages on the
+# release commit, since cargo package refuses the uncommitted candidate. Both refuse
+# unless the vendored libgit2 is the pinned commit (RELEASE.md).
+checks = [["python3", "scripts/release_checks.py", "--version", "{version}"]]
+exact_checks = [["python3", "scripts/release_checks.py", "--version", "{version}", "--exact"]]
+commit_message = "chore(release): {name} {version}"
+github_notes = "{name} {tag}: gwz-libgit2-sys and gwz-git2. See RELEASE.md."

@@ -52,12 +52,4 @@ Checklist for preparing for a release:
     - [`libgit2-sys/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/main/libgit2-sys/CHANGELOG.md)
     - [`git2-curl/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/main/git2-curl/CHANGELOG.md)
 
-There is a GitHub workflow to handle publishing to crates.io and tagging the release. There are two different ways to run it:
-
-- In the GitHub web UI:
-    1. Go to <https://github.com/rust-lang/git2-rs/actions/workflows/publish.yml> (you can navigate here via the "Actions" tab at the top).
-    2. Click the "Run workflow" drop-down on the right.
-    3. Choose which crates to publish. It's OK to leave everything checked, it will skip if it is already published. Uncheck a crate if the version has been bumped in git, but you don't want to publish that particular one, yet.
-    4. Click "Run workflow"
-- In the CLI:
-    1. Run `gh workflow run publish.yml -R rust-lang/git2-rs`
+Publishing to crates.io is done by `.github/workflows/release.yml` when a GitHub Release is published, through Trusted Publishing. It is started with `gearu`, not by hand; see [`RELEASE.md`](RELEASE.md).

@@ -316,28 +316,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "git2"
-version = "0.21.0"
-dependencies = [
- "bitflags 2.9.1",
- "clap",
- "libc",
- "libgit2-sys",
- "log",
- "openssl-probe",
- "openssl-sys",
- "tempfile",
- "time",
- "trybuild",
- "url",
-]
-
-[[package]]
 name = "git2-curl"
 version = "0.22.0"
 dependencies = [
  "curl",
- "git2",
+ "gwz-git2",
  "log",
  "tempfile",
  "url",
@@ -348,6 +331,35 @@ name = "glob"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
+
+[[package]]
+name = "gwz-git2"
+version = "0.21.0"
+dependencies = [
+ "bitflags 2.9.1",
+ "clap",
+ "gwz-libgit2-sys",
+ "libc",
+ "log",
+ "openssl-probe",
+ "openssl-sys",
+ "tempfile",
+ "time",
+ "trybuild",
+ "url",
+]
+
+[[package]]
+name = "gwz-libgit2-sys"
+version = "0.18.8+1.9.7"
+dependencies = [
+ "cc",
+ "libc",
+ "libssh2-sys",
+ "libz-sys",
+ "openssl-sys",
+ "pkg-config",
+]
 
 [[package]]
 name = "hashbrown"
@@ -505,18 +517,6 @@ name = "libc"
 version = "0.2.174"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
-
-[[package]]
-name = "libgit2-sys"
-version = "0.18.7+1.9.6"
-dependencies = [
- "cc",
- "libc",
- "libssh2-sys",
- "libz-sys",
- "openssl-sys",
- "pkg-config",
-]
 
 [[package]]
 name = "libredox"
@@ -842,8 +842,8 @@ name = "systest"
 version = "0.1.0"
 dependencies = [
  "ctest2",
+ "gwz-libgit2-sys",
  "libc",
- "libgit2-sys",
 ]
 
 [[package]]

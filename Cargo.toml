@@ -1,27 +1,38 @@
 [package]
-name = "git2"
+name = "gwz-git2"
 version = "0.21.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 keywords = ["git"]
-repository = "https://github.com/rust-lang/git2-rs"
-documentation = "https://docs.rs/git2"
-description = """
-Bindings to libgit2 for interoperating with git repositories. This library is
-both threadsafe and memory safe and allows both reading and writing git
-repositories.
-"""
+repository = "https://github.com/owebeeone/git2-rs"
+description = "GWZ bindings to the owebeeone libgit2 tree. The Rust crate name stays git2."
 categories = ["api-bindings"]
 edition = "2021"
 rust-version = "1.87"
+# Release tooling and repository files are not part of the crate.
+exclude = [
+    "/.github",
+    "/.gitmodules",
+    "/AGENTS.md",
+    "/CONTRIBUTING.md",
+    "/FUNDING.json",
+    "/RELEASE.md",
+    "/ci",
+    "/gearu.toml",
+    "/scripts",
+    "/triagebot.toml",
+]
+
+[lib]
+name = "git2"
 
 [dependencies]
 url = { version = "2.5.4", optional = true }
 bitflags = "2.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.18.7" }
+libgit2-sys = { package = "gwz-libgit2-sys", path = "libgit2-sys", version = "=0.18.8" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.45", optional = true }

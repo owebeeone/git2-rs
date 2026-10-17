@@ -1,11 +1,18 @@
 # git2-rs
 
-[Documentation](https://docs.rs/git2)
+[Documentation](https://docs.rs/gwz-git2)
 
 libgit2 bindings for Rust.
 
+This is GWZ's fork of [rust-lang/git2-rs](https://github.com/rust-lang/git2-rs).
+It is published on crates.io as two packages, `gwz-git2` and `gwz-libgit2-sys`,
+which build against the [owebeeone/libgit2](https://github.com/owebeeone/libgit2)
+tree that GWZ uses. The Rust library names are unchanged (`git2` and `libgit2_sys`),
+so only the `Cargo.toml` entry differs from upstream. If you do not need GWZ's
+libgit2 tree, use the upstream `git2` crate instead.
+
 ```
-cargo add git2
+cargo add gwz-git2 --rename git2
 ```
 
 ## Features
@@ -17,7 +24,7 @@ use features that require network support, you may need the `"https"` and/or
 want to enable both.
 
 ```
-cargo add git2 --features https,ssh
+cargo add gwz-git2 --rename git2 --features https,ssh
 ```
 
 ## Rust version requirements
@@ -45,7 +52,7 @@ In particular, note that the environment variable overrides the Cargo feature.
 ## Building git2-rs
 
 ```sh
-$ git clone https://github.com/rust-lang/git2-rs
+$ git clone --recurse-submodules https://github.com/owebeeone/git2-rs
 $ cd git2-rs
 $ cargo build
 ```
