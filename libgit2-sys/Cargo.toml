@@ -7,7 +7,6 @@ build = "build.rs"
 repository = "https://github.com/owebeeone/git2-rs"
 license = "MIT OR Apache-2.0"
 description = "Native bindings to the owebeeone libgit2 tree used by GWZ. The Rust crate name stays libgit2_sys."
-publish = false
 exclude = [
     "libgit2/ci/*",
     "libgit2/docs/*",
